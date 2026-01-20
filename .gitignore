@@ -34,3 +34,11 @@ secrets.json
 # --- OS Generated Files ---
 .DS_Store
 thumbs.db
+
+# --- TERRAFORM ---
+# Local .terraform directories
+.terraform/
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
