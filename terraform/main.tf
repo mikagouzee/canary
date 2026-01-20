@@ -9,6 +9,8 @@ terraform {
 }
 
 provider "aws" {
+  s3_use_path_style = true    #This forces Terraform to use http://localhost:4566/canary-reports instead of the DNS-heavy canary-reports.localhost, which is much more stable for local development.
+
   region                      = "us-east-1"
   access_key                  = "test"
   secret_key                  = "test"
@@ -30,8 +32,10 @@ provider "rabbitmq" {
 
 resource "rabbitmq_queue" "health_reports" {
   name       = "canary.health.reports"
-  durable    = true
-  auto_delete = false
+  settings {
+    durable    = true
+    auto_delete = false
+  }  
 }
 
 resource "aws_s3_bucket" "reports" {
