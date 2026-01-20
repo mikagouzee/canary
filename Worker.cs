@@ -1,3 +1,4 @@
+using Amazon.S3;
 using CloudNativeCanary.Data;
 using CloudNativeCanary.Models;
 using CloudNativeCanary.Services;
@@ -19,6 +20,17 @@ public class Worker : BackgroundService
         _configuration = configuration;
     }
 
+    protected override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Canary Worker starting at: {Time}", DateTimeOffset.Now);
+        if(!await _storage.IsHealthyAsync())
+        {
+            throw new Exception("Storage is not healthy.");
+        } 
+        await base.StartAsync(cancellationToken);
+    }
+
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var config = _configuration.GetSection("CanaryConfig").Get<CanaryConfig>();
@@ -36,7 +48,7 @@ public class Worker : BackgroundService
                     {
                         _logger.LogCritical("Health check FAILED for {TargetName}. Reporting to S3.", target.Name);
                         var fileStorageService = scope.ServiceProvider.GetRequiredService<FileStorageService>();
-                        await fileStorageService.UploadFailureReportAsync(target.Name, target.Url);
+                        await fileStorageService.UploadReportAsync(target.Name, target.Url);
                     }
                    
                     var result = new HealthCheckResult

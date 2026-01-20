@@ -3,7 +3,7 @@ using Amazon.S3.Model;
 
 namespace CloudNativeCanary.Services;
 
-public class FileStorageService
+public class FileStorageService : IReportStorage
 {
     private readonly IAmazonS3 _s3Client;
     private readonly IConfiguration _config;
@@ -30,10 +30,23 @@ public class FileStorageService
         _s3Client = new AmazonS3Client(accessKey, secretKey, s3Config);
     }
 
-    public async Task UploadFailureReportAsync(string targetName, string url)
+    public async Task<bool> IsHealthyAsync()
+    {
+        try
+        {
+            return await AmazonS3Util.DoesS3BucketExistV2Async(_s3Client, BucketName);
+        }
+        catch
+        {
+            _logger.LogError(ex, "Error verifying S3 bucket existence.");
+            return false;
+        }
+    }
+
+    public async Task UploadReportAsync(string targetName, string url)
     {
         // 1. Ensure the bucket exists
-        try { await _s3Client.PutBucketAsync(BucketName); } catch { /* Ignore if exists */ }
+        //try { await _s3Client.PutBucketAsync(BucketName); } catch { /* Ignore if exists */ }
 
         // 2. Create a simple report
         var fileName = $"failure-{targetName}-{DateTime.UtcNow:UnixEpochSeconds}.txt";
