@@ -1,0 +1,36 @@
+# --- .NET Core ---
+bin/
+obj/
+out/
+publish/
+*.user
+*.userosscache
+*.sln.doccache
+
+# --- Secrets and Environment Variables ---
+# Never commit these files to source control
+.env
+.env.local
+.env.*.local
+*.env
+appsettings.development.json
+secrets.json
+
+# --- Docker ---
+.dockerignore
+# Ignore the data created by Docker volumes locally
+.docker-data/
+
+# --- IDE (Visual Studio / VS Code) ---
+.vs/
+.vscode/
+*.swp
+*.lut
+*.suo
+*.user
+*.userosscache
+*.sln.doccache
+
+# --- OS Generated Files ---
+.DS_Store
+thumbs.db
