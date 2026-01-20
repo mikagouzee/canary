@@ -4,6 +4,7 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    rabbitmq = { source = "cyrilgdn/rabbitmq" }
   }
 }
 
@@ -19,6 +20,18 @@ provider "aws" {
   endpoints {
     s3 = "http://localhost:4566"
   }
+}
+
+provider "rabbitmq" {
+  endpoint = "http://localhost:15672"
+  username = var.rabbitmq_user
+  password = var.rabbitmq_password
+}
+
+resource "rabbitmq_queue" "health_reports" {
+  name       = "canary.health.reports"
+  durable    = true
+  auto_delete = false
 }
 
 resource "aws_s3_bucket" "reports" {

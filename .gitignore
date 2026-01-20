@@ -42,3 +42,5 @@ thumbs.db
 # .tfstate files
 *.tfstate
 *.tfstate.*
+terraform.tfvars
+*.tfvars.json
