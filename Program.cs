@@ -2,59 +2,84 @@ using CloudNativeCanary;using CloudNativeCanary.Data;
 using CloudNativeCanary.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
-var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddDbContext<HealthContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("HealthDatabase")));
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.Services.AddHttpClient("Canary")
-    .AddStandardResilienceHandler(o =>
-    {
-        o.Retry.MaxRetryAttempts = 3;
-        o.Retry.Delay = TimeSpan.FromSeconds(2);
-        o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
-    });
-
-builder.Services.AddHostedService<Worker>();
-
-builder.Services.AddTransient<IReportStorage, FileStorageService>();
-
-builder.Services.AddMassTransit(x =>
+try
 {
-    // Tells MassTransit to look for Consumers/Sagas in this assembly (even if we don't have them yet)
-    x.SetKebabCaseEndpointNameFormatter();
+    var builder = Host.CreateApplicationBuilder(args);
 
-    x.UsingRabbitMq((context, cfg) =>
+    builder.Services.AddSerilog((services, lc) => lc
+            .ReadFrom.Configuration(builder.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"));
+
+    builder.Services.AddDbContext<HealthContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("HealthDatabase")));
+    
+    builder.Services.AddHttpClient("Canary")
+        .AddStandardResilienceHandler(o =>
+        {
+            o.Retry.MaxRetryAttempts = 3;
+            o.Retry.Delay = TimeSpan.FromSeconds(2);
+            o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+        });
+    
+    builder.Services.AddHostedService<Worker>();
+    
+    builder.Services.AddTransient<IReportStorage, FileStorageService>();
+    
+    builder.Services.AddMassTransit(x =>
     {
-        var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
-        var username = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "guest";
-        var password = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "guest";
-
-        cfg.Host(host, "/", h =>
+        // Tells MassTransit to look for Consumers/Sagas in this assembly (even if we don't have them yet)
+        x.SetKebabCaseEndpointNameFormatter();
+    
+        x.UsingRabbitMq((context, cfg) =>
         {
-            h.Username(username);
-            h.Password(password);
+            var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+            var username = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "guest";
+            var password = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "guest";
+    
+            cfg.Host(host, "/", h =>
+            {
+                h.Username(username);
+                h.Password(password);
+            });
+    
+            // Resilience: If the broker is unreachable, retry 3 times with a 5s delay
+            cfg.UseMessageRetry(r => 
+            {
+                r.Interval(3, TimeSpan.FromSeconds(5));
+            });
+    
+            cfg.ConfigureEndpoints(context);
         });
-
-        // Resilience: If the broker is unreachable, retry 3 times with a 5s delay
-        cfg.UseMessageRetry(r => 
-        {
-            r.Interval(3, TimeSpan.FromSeconds(5));
-        });
-
-        cfg.ConfigureEndpoints(context);
     });
-});
-
-
-var host = builder.Build();
-
-//Automatically apply migrations at startup
-using (var scope = host.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<HealthContext>();
-    db.Database.Migrate();
+    
+    
+    var host = builder.Build();
+    
+    //Automatically apply migrations at startup
+    using (var scope = host.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<HealthContext>();
+        db.Database.Migrate();
+    }
+    
+    host.Run();
+    
 }
-
-host.Run();
+catch (System.Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
