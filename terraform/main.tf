@@ -30,12 +30,27 @@ provider "rabbitmq" {
   password = var.rabbitmq_password
 }
 
+resource "rabbitmq_exchange" "health_reports_exchange" {
+  name = "CloudNativeCanary.Contracts:HealthReportCreated"
+  settings {
+    type    = "fanout" # MassTransit defaults to fanout for simple publishes
+    durable = true
+  }
+}
+
 resource "rabbitmq_queue" "health_reports" {
   name       = "canary.health.reports"
   settings {
     durable    = true
     auto_delete = false
   }  
+}
+
+resource "rabbitmq_binding" "health_reports_binding" {
+  source           = rabbitmq_exchange.health_reports_exchange.name
+  vhost            = "/"
+  destination      = rabbitmq_queue.health_reports.name # Use your terraform queue name here
+  destination_type = "queue"
 }
 
 resource "aws_s3_bucket" "reports" {
