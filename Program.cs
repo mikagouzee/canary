@@ -1,5 +1,7 @@
-using CloudNativeCanary;using CloudNativeCanary.Data;
-using CloudNativeCanary.Services;
+using Canary;
+using Canary.Data;
+using Canary.Models;
+using Canary.Services;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -33,7 +35,10 @@ try
     builder.Services.AddHostedService<Worker>();
     
     builder.Services.AddTransient<IReportStorage, FileStorageService>();
-    
+    // builder.Services.AddHealthChecks()
+    //     .AddCheck<StorageHealthCheck>("Storage Health Check");
+
+
     builder.Services.AddMassTransit(x =>
     {
         // Tells MassTransit to look for Consumers/Sagas in this assembly (even if we don't have them yet)
@@ -41,7 +46,7 @@ try
     
         x.UsingRabbitMq((context, cfg) =>
         {
-            var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+            var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "rabbitmq-service";
             var username = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "guest";
             var password = Environment.GetEnvironmentVariable("RABBITMQ_PASS") ?? "guest";
     

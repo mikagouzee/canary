@@ -1,4 +1,4 @@
-namespace CloudNativeCanary.Services;
+namespace Canary.Services;
 
 public interface IReportStorage
 {

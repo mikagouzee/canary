@@ -4,7 +4,7 @@ using Amazon.S3.Util;
 using Canary.Models;
 using MassTransit;
 
-namespace CloudNativeCanary.Services;
+namespace Canary.Services;
 
 public class FileStorageService : IReportStorage
 {

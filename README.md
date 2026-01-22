@@ -139,6 +139,17 @@ To verify the "Fail-Fast" logic:
 
     Check logs: docker logs canary-worker. You should see: CRITICAL: Storage service is not responding or bucket is missing!
 
-What's next?
+---
 
-Next step is to introduce Asynchronous Messaging. I'll be adding a RabbitMQ broker to the stack to decouple the "Health Check" logic from the "Alerting" logic.
+MINIKUBE! 
+## Local Development Workflow
+1. **Start Environment**: `minikube start`
+2. **Bind Docker**: `& minikube -p minikube docker-env --shell powershell | Invoke-Expression`
+3. **Build & Deploy**: 
+   - `docker build -t canary-app:v1 .`
+   - `kubectl apply -f .`
+4. **Access S3**: `kubectl port-forward service/localstack-service 4566:4566`
+5. **Inspect DB**: `kubectl exec -it deployment/postgres -- psql -U admin -d canary`
+
+Today we installed minikube and moved from docker-compose to actual kubernetes behaviour. 
+We solved a few config tweaks and references. The secrets and passwords are stored in a Kubernetes "secret" resource, and 
