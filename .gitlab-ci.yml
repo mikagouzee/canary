@@ -17,6 +17,12 @@ build_image:
   image: docker:24.0.5
   services:
     - docker:24.0.5-dind # Docker-in-Docker service to allow building and pushing images
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"' # Only build and push images for the main branch  
+    - changes: 
+        - Dockerfile # Rebuild the image if the Dockerfile changes
+        - .gitlab-ci.yml
+        - src/** # Rebuild the image if any source code changes
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_TAG .
