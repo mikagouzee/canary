@@ -1,0 +1,22 @@
+# As we run minikube locally, we can't use the local docker daemon.
+# Instead, we will build the image in the CI and push it to the GitLab Container Registry.
+# Then, we can use the image in the minikube cluster.
+
+
+stages:
+  - build
+  - deploy
+
+variables:
+  # This is the address of your project's container registry
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+build_image:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind # Docker-in-Docker service to allow building and pushing images
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
