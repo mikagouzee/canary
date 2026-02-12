@@ -1,0 +1,8 @@
+# .gitlab/agents/minikube-canary/config.yaml
+# gitops:
+#   manifest_projects:
+#   - id: mikagouzee/canary
+# THIS FILE TELLS THE AGENT TO BIND THIS PROJECT TO THE ONE ON GITLAB, AND TO GIVE IT ACCESS TO THE REPOSITORY
+user_access:
+  projects:
+    - id: mikagouzee/canary  # Change this to your actual path
