@@ -1,0 +1,8 @@
+# .gitlab/agents/minikube-canary/config.yaml
+# gitops:
+#   manifest_projects:
+#   - id: mikagouzee/canary
+
+user_access:
+  projects:
+    - id: mikagouzee/canary  # Change this to your actual path
