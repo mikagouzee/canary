@@ -9,6 +9,7 @@ stages:
 
 variables:
   # This is the address of your project's container registry
+  # CI_COMMIT_SHORT_SHA is a built-in variable that gives you a short version of the commit hash, which is useful for tagging images
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
 build_image:
