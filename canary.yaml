@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-app
+  labels:
+    app: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary
+  template:
+    metadata:
+      labels:
+        app: canary
+    spec:
+      #This init container is for local development only. Remove for production deployments.
+      #in a real situation we should use the terraform plan, either manually or triggered by the pipeline.
+      initContainers:
+      - name: init-s3
+        image: amazon/aws-cli
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "test"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "test"
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        command: ['sh', '-c', 'aws --endpoint-url=http://localstack-service:4566 s3 mb s3://canary-reports || true']
+      containers:
+      - name: canary
+        image: canary-app:v1  
+        imagePullPolicy: Never
+        env:
+        - name: DB_USER
+          value: "admin"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: canary-secrets
+              key: DB_PASSWORD
+        - name: ConnectionStrings__HealthDatabase
+          value: "Host=postgres-service;Port=5432;Database=canary;Username=admin;Password=$(DB_PASSWORD)"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq-service"
+        - name: RABBITMQ_USERNAME
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: canary-secrets
+              key: RABBITMW_PASSWORD
+        - name: AWS_ACCESS_KEY_ID
+          value: "test"
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: canary-secrets
+              key: AWS_SECRET_KEY
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: AWS_S3_ENDPOINT
+          value: "http://localstack-service:4566"
+        - name: CanarySettings__CheckIntervalSeconds
+          value: "60"
+        # Add your S3/Localstack envs here too
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-service
+spec:
+  selector:
+    app: canary
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

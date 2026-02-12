@@ -1,5 +1,20 @@
 name: canary-stack
 services:
+  localstack:
+      image: localstack/localstack
+      container_name: localstack-canary
+      ports:
+        - "4566:4566"            # LocalStack Gateway
+      healthcheck:
+        test: ["CMD-SHELL", "curl -f http://localhost:4566/_localstack/init || exit 1"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+      environment:
+        - SERVICES=s3            # We only need S3 for now
+        - DEBUG=1
+      volumes:
+        - "./ls-data:/var/lib/localstack"
   health_db:
     image: postgres:16
     environment:
@@ -16,7 +31,20 @@ services:
       retries: 5
     ports:
       - "5432:5432"
-
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-canary
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   app:
     build: .
     container_name: canary-worker
@@ -29,19 +57,12 @@ services:
       - AWS_REGION=${AWS_REGION}
       - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT}
     depends_on:
+      localstack:
+        condition: service_healthy
       health_db:
         condition: service_healthy
 
-  localstack:
-    image: localstack/localstack
-    container_name: localstack-canary
-    ports:
-      - "4566:4566"            # LocalStack Gateway
-    environment:
-      - SERVICES=s3            # We only need S3 for now
-      - DEBUG=1
-    volumes:
-      - "./ls-data:/var/lib/localstack"
+  
 
 volumes:
   pg-data:

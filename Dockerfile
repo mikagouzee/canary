@@ -11,7 +11,7 @@ COPY . .
 RUN dotnet publish "CloudNativeCanary.csproj" -c Release -o /app/publish
 
 # STAGE 2: Runtime
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 

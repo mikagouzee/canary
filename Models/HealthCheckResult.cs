@@ -1,4 +1,4 @@
-namespace CloudNativeCanary.Models;
+namespace Canary.Models;
 
 public class HealthCheckResult
 {
